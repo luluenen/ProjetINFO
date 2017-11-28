@@ -1,0 +1,202 @@
+# -*- coding: utf-8 -*-
+
+import random
+import sys
+from math import sqrt
+
+def read_data(filename, skip_first_line = False, ignore_first_column = False):
+    '''
+    Loads data from a csv file and returns the corresponding list.
+    All data are expected to be floats, except in the first column.
+    
+    @param filename: csv file name.
+    
+    @param skip_first_line: if True, the first line is not read.
+        Default value: False.
+    
+    @param ignore_first_column: if True, the first column is ignored.
+        Default value: False.
+    
+    @return: a list of lists, each list being a row in the data file.
+        Rows are returned in the same order as in the file.
+        They contains floats, except for the 1st element which is a string
+        when the first column is not ignored.
+    '''
+    
+    f = open(filename,'r')
+    if skip_first_line:
+        f.readline()
+    
+    data = []
+    for line in f:
+        line = line.split(",")
+        line[1:] = [ float(x) for x in line[1:] ]
+        if ignore_first_column:
+            line = line[1:]
+        data.append(line)
+    f.close()
+    return data
+
+def write_data(data, filename):
+    '''
+    Writes data in a csv file.
+
+    @param data: a list of lists
+
+    @param filename: the path of the file in which data is written.
+        The file is created if necessary; if it exists, it is overwritten.
+    '''
+    # If you're curious, look at python's module csv instead, which offers
+    # more powerful means to write (and read!) csv files.
+    f = open(filename, 'w')
+    for item in data:
+        f.write(','.join([repr(x) for x in item]))
+        f.write('\n')
+    f.close()
+
+def generate_random_data(nb_objs, nb_attrs, frand = random.random):
+    '''
+    Generates a matrix of random data.
+    
+    @param frand: the fonction used to generate random values.
+        It defaults to random.random.
+        Example::
+
+            import random
+            generate_random_data(5, 6, lambda: random.gauss(0, 1))
+    
+    @return: a matrix with nb_objs rows and nb_attrs+1 columns. The 1st
+        column is filled with line numbers (integers, from 1 to nb_objs).
+    '''
+    data = []
+    for i in range(nb_objs):
+        #line = [i+1]
+        #for j in range(numAtt):
+        #    line.append(frand())
+        line = [i+1] + map(lambda x: frand(), range(nb_attrs))
+        data.append(line)
+    return(data)
+        
+# creation des k centres avec une fonction aleatoire
+def generate_random_centres(k,data):
+    '''
+    cree k centres avec une fonction aleatoire
+
+    @param k: le nombre de centres que l'on veut generer aleatoirement
+
+    @param data: le tableau de donnees d'entrees sur lequel on prend un quelques centres aleatoirement
+
+    @return: un liste de centres pris dans la tableau de donnees
+
+    '''
+    #on verirfie si le nombre de centres k ne depasse pas la taille data, si c'est  le ca on renvoie erreur
+    if k<len(data):
+        centres=[]
+        #on recupere aleatoirement k centres dans data avec la fonction rand.sample
+        centres=random.sample(data,k)
+        return(centres)
+    else:
+        return False
+
+#calcul de la distance avec comme parametres les donnees d'entrees et les centres
+
+def calcul_distance(centres, data):
+    '''
+    calcule la distance entre les observations et les centres designes
+
+    @param centres: la liste des centres 
+
+    @param data: le tableau de donnees d'entrees sur lequel on calcule la distance avec les centres
+
+    @return: une liste de distances calculées avec pour premier element le numero d'observation
+
+    '''
+    dist=[]
+    for i in range(0,len(data)):
+        dist.append([])
+        #on met les numeros d'observation avant de faire le calcul de distance
+        dist[i].append(data[i][0])
+        for j in range(0,len(centres)):
+            som=0
+            #pour chaque observation, on calcule la distance correspondante avec chaque centre et on l'ajoute dans notre dans la liste d'indice i
+            for k in range (1, len(data[i])):
+                som+= (data[i][k]-centres[j][k])**2
+            dist[i].append(sqrt(som))
+            
+    return dist
+
+#affectation des obeservations dans les groupes dont les centes leur sont plus proches
+def affectation(distance,centre,data):
+    '''
+    cree les affectations correspondantes a chaque observation
+
+    @param centre: la liste des centres 
+
+    @param data: le tableau de donnees d'entrees
+
+    @param distance: la liste des distances calculees pour chaque observation
+
+    @return: une liste des donnees d'entree et leur observation correspondante a la fin
+
+    '''
+    
+    affect=[]
+    for i in range(0,len(distance)):
+        #on parcourt la liste des distances et on recupere l'indice qui correspond a la distance minimale
+        #Cet indice de distance minimal correspondra à l'indice de placement du centre dans le tableau centre décalé de 1 avec lequel on a calculé la distance
+        indice_mini=distance[i].index(min(distance[i]))
+        #on construit une nouvelle avec les valeurs de data et on rajoute ensuite l'indice du centre correspondant
+        affect.append(data[i])
+        affect[i].append(centre[indice_mini-1][0])
+    return affect
+
+
+
+#Pour les donnees d'entree
+# D'abord on génère des données aléatoires
+
+data = generate_random_data(4,2)
+print data
+
+# Ensuite on ecrit ces donnees dans un fichier
+write_data(data, "donnee_entree.csv")
+
+# Puis on relit ces donnees a partir du fichier
+data_read = read_data("donnee_entree.csv")
+
+
+
+#pour les centres
+# on genere les centres des donnees
+
+centre=generate_random_centres(2,data)
+print centre
+
+# Ecrire les centres dans un fichier
+write_data(centre, "donnee_centre.csv")
+
+# Relire les centres a partir du fichier
+data_read = read_data("donnee_centre.csv")
+
+# on calcule la distance entre les donnees et les centres
+distance=calcul_distance(centre,data)
+print distance
+
+
+
+#pour les affectations
+# on affecte à chaque individu son groupe correspondant à l'indice du centre dont il est le plus pret 
+
+affect=affectation(distance,centre,data)
+print affect
+
+# Ecrire les affectations dans un fichier
+write_data(centre, "affectation.csv")
+
+# Relire les affectations a partir du fichier
+data_read = read_data("affectation.csv")
+
+
+
+
+
